@@ -1,0 +1,58 @@
+import json
+import csv
+from itertools import zip_longest
+
+def json_to_csv(json_files, output_csv):
+    # 读取所有JSON文件
+    all_data = []
+    for json_file in json_files:
+        with open(json_file, 'r', encoding='utf-8') as f:
+            # 处理非常规JSON格式（每行一个对象）
+            data = []
+            for line in f:
+                line = line.strip()
+                if line and line not in ['{', '}', '[', ']']:
+                    if line.endswith(','):
+                        line = line[:-1]
+                    try:
+                        data.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        continue
+            all_data.append(data)
+    
+    # 确定列名（使用第一个文件的第一个对象的键）
+    headers = []
+    for data in all_data:
+        if data and isinstance(data[0], dict):
+            headers.extend(list(data[0].keys()))
+    
+    # 准备CSV数据
+    csv_data = []
+    
+    # 添加标题行（从第一个JSON的键和第二个JSON的键组合）
+    title_row = []
+    for data in all_data:
+        if data and isinstance(data[0], dict):
+            title_row.extend(list(data[0].keys()))
+    csv_data.append(title_row)
+    
+    # 添加数据行
+    max_rows = max(len(data) for data in all_data)
+    for i in range(max_rows):
+        row = []
+        for data in all_data:
+            if i < len(data):
+                row.extend(list(data[i].values()))
+            else:
+                row.extend([''] * len(data[0])) if data else row.extend([''])
+        csv_data.append(row)
+    
+    # 写入CSV文件
+    with open(output_csv, 'w', encoding='utf-8', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(csv_data)
+
+# 使用示例
+json_files = ['test.json', 'test2.json']
+output_csv = 'out.csv'
+json_to_csv(json_files, output_csv)
